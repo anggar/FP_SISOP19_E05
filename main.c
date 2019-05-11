@@ -51,7 +51,7 @@ void* execute(void *arg){
     for(i=0; i<N; i++){
         // printf("%d %d %d\n", i, id, tid[i]);
         if((id == tid[i]) && (execable(c_timerules[i]))){
-            printf("\n%d: %s\n", i, c_cmd[i]);
+            // printf("\n%d: %s\n", i, c_cmd[i]);
             child = fork();
 
             if(child == 0){
