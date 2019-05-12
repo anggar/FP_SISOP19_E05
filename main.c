@@ -26,17 +26,19 @@ int execable(int *timerules){
 
     int i=0, flag=1, fdom=0;
     // perhatikan 2 sama 4
-    // rule 4 matikan dulu
-    if(timerules[0] != tm->tm_min && timerules[0] != -1) flag = 0;
-    if(timerules[1] != tm->tm_hour && timerules[1] != -1) flag = 0;
+    // mereka dicek terlebih dahulu
     if(timerules[2] != tm->tm_mday && timerules[2] != -1) {
         flag = 0;
         fdom = 1; // tidak sesuai tgl, tapi lihat weekday nanti
     }
-    if(timerules[3] != tm->tm_mon && timerules[3] != -1) flag = 0;
     if(timerules[4] != tm->tm_wday && timerules[4] != -1) flag = 0;
     if(timerules[4] == tm->tm_wday && fdom) flag = 1; // reverse fdom effect
 
+    if(timerules[0] != tm->tm_min && timerules[0] != -1) flag = 0;
+    if(timerules[1] != tm->tm_hour && timerules[1] != -1) flag = 0;
+    if(timerules[3] != tm->tm_mon && timerules[3] != -1) flag = 0;
+
+    // jika tidak pada detik ke-0 jangan dijalankan
     if(tm->tm_sec != 0) flag = 0;
 
     // printf("\n");
@@ -82,16 +84,19 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // Kami mengasumsikan berkas konfigurasi
+    // terletak di direktori daemon
     // if ((chdir("/")) < 0) {
     //     exit(EXIT_FAILURE);
     // }
 
     close(STDIN_FILENO);
-    // close(STDOUT_FILENO);
-    // close(STDERR_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 
     FILE * cronconfig;
-    char buffer[100];
+    char buffer[160];
+    long timed;
 
     while(1) {
         // main program here
@@ -104,7 +109,9 @@ int main() {
             return (-1);
         }
 
-        while (EOF != fscanf(cronconfig, "%100[^\n]\n", buffer)) {
+        timed = (long) time(NULL) % 60;
+        while (((timed == 0) || (timed > 52)) && // baca saat akan ganti menit
+                (EOF != fscanf(cronconfig, "%160[^\n]\n", buffer))) {
             char *token = strtok(buffer, " ");
             int flag=0;
 

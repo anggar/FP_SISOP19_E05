@@ -1,4 +1,5 @@
 # SoalShift_modul4_E05
+
 > 05111740000052 Anggar Wahyu Nur Wibowo
 
 >  05111740000099 Bobbi Aditya
@@ -11,6 +12,7 @@ Ada sebuah file crontab.data untuk menyimpan config dari crontab. Setiap ada per
 Config hanya sebatas * dan 0-9 (tidak perlu /,- dan yang lainnya)
 
 ## Daemon
+
 Dalam program cron kami, program kami akan mengecek apakah config masing-masing crontab sesuai dengan waktu sekarang. Proses pengecekan akan dilakukan setiap detik, untuk menjalankan program akan dilakukan setiap detik ke 0 jika config crontab sesuai
 
 
@@ -19,6 +21,7 @@ Dalam program cron kami, program kami akan mengecek apakah config masing-masing 
 FILE * cronconfig;
 char buffer[100];
 int linecnt=0, err;
+long timed;
 cronconfig = fopen("crontab.data", "r");
 
 if (!cronconfig)
@@ -27,7 +30,9 @@ if (!cronconfig)
     return (-1);
 }
 
-while (EOF != fscanf(cronconfig, "%100[^\n]\n", buffer)) {
+timed = (long) time(NULL) % 60;
+while (((timed == 0) || (timed > 52)) && // baca saat akan ganti menit
+        (EOF != fscanf(cronconfig, "%160[^\n]\n", buffer))) {
     char *token = strtok(buffer, " ");
     int flag=0;
 
@@ -47,7 +52,7 @@ while (EOF != fscanf(cronconfig, "%100[^\n]\n", buffer)) {
     linecnt++;
 }
 ```
-Untuk membaca file kita menggunakan fungsi `fscanf`. Pada saat membaca tiap line, kita mengambil masing-masing config dari crontab(ada 5 buah) menggunakan `strtok`. Config crontab akan disimpan didalam array `c_timerules`, dan perintah eksekusinya akan disimpan di dalam array `c_cmd`.
+Untuk membaca file kita menggunakan fungsi `fscanf`. Pada saat membaca tiap line, kita mengambil masing-masing konfigurasi waktu dari crontab (ada 5 buah) menggunakan `strtok`. Config crontab akan disimpan didalam array `c_timerules`, dan perintah eksekusinya akan disimpan di dalam array `c_cmd`.
 
 ## Threading
 ```c
@@ -85,24 +90,24 @@ int execable(int *timerules){
     tm = localtime(&tim);
 
     int i=0, flag=1, fdom=0;
-    // perhatikan 2 sama 4
-    // rule 4 matikan dulu
-    if(timerules[0] != tm->tm_min && timerules[0] != -1) flag = 0;
-    if(timerules[1] != tm->tm_hour && timerules[1] != -1) flag = 0;
     if(timerules[2] != tm->tm_mday && timerules[2] != -1) {
         flag = 0;
         fdom = 1; // tidak sesuai tgl, tapi lihat weekday nanti
     }
-    if(timerules[3] != tm->tm_mon && timerules[3] != -1) flag = 0;
     if(timerules[4] != tm->tm_wday && timerules[4] != -1) flag = 0;
     if(timerules[4] == tm->tm_wday && fdom) flag = 1; // reverse fdom effect
 
+    if(timerules[0] != tm->tm_min && timerules[0] != -1) flag = 0;
+    if(timerules[1] != tm->tm_hour && timerules[1] != -1) flag = 0;
+    if(timerules[3] != tm->tm_mon && timerules[3] != -1) flag = 0;
+
+    // jika tidak pada detik ke-0 jangan dijalankan
     if(tm->tm_sec != 0) flag = 0;
 
     // printf("\n");
     return flag;
 }
 ```
-Untuk mengecek apakah config corntab sesuai dengan waktu sekarang, kami menggunakan flag sebagai penanda apakah config crontab sesuai atau tidak.
+Untuk mengecek apakah konfigurasi *crontab* sesuai dengan waktu sekarang kami menggunakan flag.
 
-Pertama kami mengecek apakah config menit, config jam, dan config tanggal apakah sesuai atau tidak dengan waktu sekarang. Pada saat mengecek tanggal, kami menambahkan flag `fdom` untuk nanti digunakan saat pengecekan hari pada minggu ini. Setelah mengecek tanggal, kita mengecek bulan. Kemudian yang terakhir kita mengecek hari pada minggu ini apakah sesuai config atau tidak, jika tanggal sekarang dan hari pada minggu ini sesuai, maka flag akan tetap menjadi `1` menandakan config crontab sesuai. 
+Pertama kami mengecek apakah config menit, config jam, dan config tanggal apakah sesuai atau tidak dengan waktu sekarang. Jika tidak, maka flag akan diubah menjadi `0`, yang menandakan tidak akan dijalankan. Khusus saat mengecek tanggal, kami menambahkan flag `fdom` untuk nanti digunakan saat pengecekan hari pada minggu ini. Setelah itu, kita mengecek hari pada minggu ini apakah sesuai config atau tidak, jika sebelumnya telah mengubah `flag` menjadi 0 saat pengecekan tanggal, dan ternyata config untuk hari sesuai, maka flag akan diubah lagi menjadi 1. Setelah itu, kita melakukan pengecekan pada menit, jam, dan bulan.
