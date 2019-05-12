@@ -99,7 +99,7 @@ int execable(int *timerules){
 
     if(timerules[0] != tm->tm_min && timerules[0] != -1) flag = 0;
     if(timerules[1] != tm->tm_hour && timerules[1] != -1) flag = 0;
-    if(timerules[3] != tm->tm_mon && timerules[3] != -1) flag = 0;
+    if(timerules[3] != tm->tm_mon+1 && timerules[3] != -1) flag = 0;
 
     // jika tidak pada detik ke-0 jangan dijalankan
     if(tm->tm_sec != 0) flag = 0;
